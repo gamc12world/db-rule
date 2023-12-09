@@ -1,6 +1,4 @@
-import { RuleEngine } from "../lib/index";
-import { API, Fact } from "../lib/types";
-
+import { RuleEngine, Fact, API } from "../src/index";
 describe("Rules", function () {
   describe(".init()", function () {
     it("should empty the existing rule array", function () {
@@ -14,8 +12,7 @@ describe("Rules", function () {
           },
         },
       ];
-      var R = new RuleEngine(rules);
-      R.init();
+      var R = new RuleEngine();
       expect(R.rules).toEqual([]);
     });
   });
@@ -31,7 +28,8 @@ describe("Rules", function () {
           },
         },
       ];
-      var R = new RuleEngine(rules);
+      var R = new RuleEngine();
+      R.register(rules)
       expect(R.rules[0].on).toEqual(true);
     });
     it("Rule can be passed to register as both arrays and individual objects", function () {
@@ -43,8 +41,10 @@ describe("Rules", function () {
           R.stop();
         },
       };
-      var R1 = new RuleEngine(rule);
-      var R2 = new RuleEngine([rule]);
+      var R1 = new RuleEngine();
+      R1.register(rule)
+      var R2 = new RuleEngine();
+      R2.register([rule])
       expect(R1.rules).toEqual(R2.rules);
     });
     it("Rules can be appended multiple times via register after creating rule engine instance", function () {
@@ -66,8 +66,10 @@ describe("Rules", function () {
           },
         },
       ];
-      var R1 = new RuleEngine(rules);
-      var R2 = new RuleEngine(rules[0]);
+      var R1 = new RuleEngine();
+      R1.register(rules)
+      var R2 = new RuleEngine();
+      R2.register(rules[0]);
       var R3 = new RuleEngine();
       R2.register(rules[1]);
       expect(R1.rules).toEqual(R2.rules);
@@ -152,7 +154,8 @@ describe("Rules", function () {
           R.stop();
         },
       };
-      var R = new RuleEngine(rule);
+      var R = new RuleEngine();
+      R.register(rule)
       R.execute(
         {
           transactionTotal: 200,
@@ -184,7 +187,8 @@ describe("Rules", function () {
           priority: 8,
         },
       ];
-      var R = new RuleEngine(rule);
+      var R = new RuleEngine();
+      R.register(rule)
       R.execute(
         {
           transactionTotal: 200,
@@ -209,7 +213,8 @@ describe("Rules", function () {
           R.stop();
         },
       };
-      var R = new RuleEngine(rule);
+      var R = new RuleEngine();
+      R.register(rule)
       R.execute(
         {
           input: true,
@@ -268,7 +273,8 @@ describe("Rules", function () {
         },
       ];
       var lastMatch = "index_" + (rules.length - 1).toString();
-      var R = new RuleEngine(rules);
+      var R = new RuleEngine();
+      R.register(rules)
       R.execute(
         {
           x: true,
@@ -294,7 +300,8 @@ describe("Rules", function () {
           R.stop();
         },
       };
-      var R = new RuleEngine(rule);
+      var R = new RuleEngine();
+      R.register(rule)
       R.execute(
         {
           transactionTotal: 200,
@@ -318,7 +325,8 @@ describe("Rules", function () {
           R.stop();
         },
       };
-      var R = new RuleEngine(rule);
+      var R = new RuleEngine();
+      R.register(rule)
       R.execute(
         {
           transactionTotal: 200,
@@ -350,7 +358,8 @@ describe("Rules", function () {
         id: "two",
       },
     ];
-    var R = new RuleEngine(rules);
+    var R = new RuleEngine();
+    R.register(rules)
     it("find selector function for rules should exact number of matches", function () {
       expect(
         R.findRules({
@@ -399,7 +408,8 @@ describe("Rules", function () {
         on: false,
       },
     ];
-    var R = new RuleEngine(rules);
+    var R = new RuleEngine();
+    R.register(rules)
     it("checking whether turn off rules work as expected", function () {
       R.turn("OFF", {
         id: "one",
@@ -454,7 +464,8 @@ describe("Rules", function () {
         priority: 4,
       },
     ];
-    var R = new RuleEngine(rules);
+    var R = new RuleEngine();
+    R.register(rules)
     it("checking whether prioritize work", function () {
       R.prioritize(10, {
         id: "one",
@@ -493,8 +504,8 @@ describe("Rules", function () {
     };
 
     it("doesn't rerun when a fact changes if ignoreFactChanges is true", function (done) {
-      var R = new RuleEngine(rules, { ignoreFactChanges: true });
-
+      var R = new RuleEngine({ ignoreFactChanges: true });
+      R.register(rules)
       R.execute(fact, function (result) {
         expect(result.errors).toHaveLength(1);
         done();
@@ -573,7 +584,8 @@ describe("Rules", function () {
     };
 
     it("context switches and finishes the fact which needs least iteration first", function (done) {
-      var R = new RuleEngine(rules);
+      var R = new RuleEngine();
+      R.register(rules)
       var isStraightFactFast = false;
 
       R.execute(chainedFact, function (result) {
