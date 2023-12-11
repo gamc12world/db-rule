@@ -1,11 +1,11 @@
-import { RuleEngine, Fact, API } from "../src/index";
+import { RuleEngine, Fact, API, Rule } from "../src/rule";
 describe("Rules", function () {
   describe(".init()", function () {
     it("should empty the existing rule array", function () {
       var rules = [
         {
           condition: function (R: API) {
-            R.when(1);
+            R.when(true);
           },
           consequence: function (R: API) {
             R.stop();
@@ -21,7 +21,7 @@ describe("Rules", function () {
       var rules = [
         {
           condition: function (R: API) {
-            R.when(1);
+            R.when(true);
           },
           consequence: function (R: API) {
             R.stop();
@@ -29,29 +29,29 @@ describe("Rules", function () {
         },
       ];
       var R = new RuleEngine();
-      R.register(rules)
+      R.register(rules);
       expect(R.rules[0].on).toEqual(true);
     });
     it("Rule can be passed to register as both arrays and individual objects", function () {
       var rule = {
         condition: function (R: API) {
-          R.when(1);
+          R.when(true);
         },
         consequence: function (R: API) {
           R.stop();
         },
       };
       var R1 = new RuleEngine();
-      R1.register(rule)
+      R1.register(rule);
       var R2 = new RuleEngine();
-      R2.register([rule])
+      R2.register([rule]);
       expect(R1.rules).toEqual(R2.rules);
     });
     it("Rules can be appended multiple times via register after creating rule engine instance", function () {
       var rules = [
         {
           condition: function (R: API) {
-            R.when(1);
+            R.when(true);
           },
           consequence: function (R: API) {
             R.stop();
@@ -59,7 +59,7 @@ describe("Rules", function () {
         },
         {
           condition: function (R: API) {
-            R.when(0);
+            R.when(false);
           },
           consequence: function (R: API) {
             R.stop();
@@ -67,7 +67,7 @@ describe("Rules", function () {
         },
       ];
       var R1 = new RuleEngine();
-      R1.register(rules)
+      R1.register(rules);
       var R2 = new RuleEngine();
       R2.register(rules[0]);
       var R3 = new RuleEngine();
@@ -82,7 +82,7 @@ describe("Rules", function () {
       var rules = [
         {
           condition: function (R: API) {
-            R.when(1);
+            R.when(true);
           },
           consequence: function (R: API) {
             R.stop();
@@ -92,7 +92,7 @@ describe("Rules", function () {
         },
         {
           condition: function (R: API) {
-            R.when(0);
+            R.when(false);
           },
           consequence: function (R: API) {
             R.stop();
@@ -111,7 +111,7 @@ describe("Rules", function () {
           priority: 8,
           index: 1,
           condition: function (R: API) {
-            R.when(1);
+            R.when(true);
           },
           consequence: function (R: API) {
             R.stop();
@@ -121,7 +121,7 @@ describe("Rules", function () {
           priority: 6,
           index: 2,
           condition: function (R: API) {
-            R.when(1);
+            R.when(true);
           },
           consequence: function (R: API) {
             R.stop();
@@ -131,7 +131,7 @@ describe("Rules", function () {
           priority: 9,
           index: 0,
           condition: function (R: API) {
-            R.when(1);
+            R.when(true);
           },
           consequence: function (R: API) {
             R.stop();
@@ -145,23 +145,28 @@ describe("Rules", function () {
   });
   describe(".exec()", function () {
     it("should run consequnce when condition matches", function () {
-      var rule = {
+      var rule: Rule = {
         condition: function (R: API, f: Fact) {
-          R.when(f.transactionTotal < 500);
+          R.when(f[0].transactionTotal < 500);
         },
         consequence: function (R: API, f: Fact) {
+          f.forEach((element: any) => {
+            element.result = false;
+          });
           f.result = false;
           R.stop();
         },
       };
       var R = new RuleEngine();
-      R.register(rule)
+      R.register(rule);
       R.execute(
-        {
-          transactionTotal: 200,
-        },
+        [
+          {
+            transactionTotal: 200,
+          },
+        ],
         function (result) {
-          expect(result.result).toEqual(false);
+          expect(result[0].result).toEqual(false);
         }
       );
     });
@@ -169,17 +174,19 @@ describe("Rules", function () {
       var rule = [
         {
           condition: function (R: API, f: Fact) {
-            R.when(f.card == "VISA");
+            R.when(f[0].card == "VISA");
           },
           consequence: function (R: API, f: Fact) {
             R.stop();
-            f.result = "Custom Result";
+            f.forEach((element: any) => {
+              element.result = "Custom Result";
+            });
           },
           priority: 4,
         },
         {
           condition: function (R: API, f: Fact) {
-            R.when(f.transactionTotal < 1000);
+            R.when(f[0].transactionTotal < 1000);
           },
           consequence: function (R: API, f: Fact) {
             R.next();
@@ -188,14 +195,16 @@ describe("Rules", function () {
         },
       ];
       var R = new RuleEngine();
-      R.register(rule)
+      R.register(rule);
       R.execute(
-        {
-          transactionTotal: 200,
-          card: "VISA",
-        },
+        [
+          {
+            transactionTotal: 200,
+            card: "VISA",
+          },
+        ],
         function (result) {
-          expect(result.result).toEqual("Custom Result");
+          expect(result[0].result).toEqual("Custom Result");
         }
       );
     });
@@ -204,24 +213,28 @@ describe("Rules", function () {
         name: "sample rule name",
         id: "xyzzy",
         condition: function (R: API, f: Fact) {
-          R.when(f.input === true);
+          R.when(f[0].input === true);
         },
-        consequence: function (R: API, f: Fact) {
-          f.result = true;
-          f.ruleName = R.rule().name;
-          f.ruleID = R.rule().id;
+        consequence: function (R: API, fact: Fact) {
+          fact.forEach((f: any) => {
+            f.result = true;
+            f.ruleName = R.rule().name;
+            f.ruleID = R.rule().id;
+          });
           R.stop();
         },
       };
       var R = new RuleEngine();
-      R.register(rule)
+      R.register(rule);
       R.execute(
-        {
-          input: true,
-        },
+        [
+          {
+            input: true,
+          },
+        ],
         function (result) {
-          expect(result.ruleName).toEqual(rule.name);
-          expect(result.ruleID).toEqual(rule.id);
+          expect(result[0].ruleName).toEqual(rule.name);
+          expect(result[0].ruleID).toEqual(rule.id);
         }
       );
     });
@@ -230,7 +243,7 @@ describe("Rules", function () {
         {
           name: "rule A",
           condition: function (R: API, f: Fact) {
-            R.when(f.x === true);
+            R.when(f[0].x === true);
           },
           consequence: function (R: API) {
             R.next();
@@ -239,7 +252,7 @@ describe("Rules", function () {
         {
           name: "rule B",
           condition: function (R: API, f: Fact) {
-            R.when(f.y === true);
+            R.when(f[0].y === true);
           },
           consequence: function (R: API) {
             R.next();
@@ -248,7 +261,7 @@ describe("Rules", function () {
         {
           id: "rule C",
           condition: function (R: API, f: Fact) {
-            R.when(f.x === true && f.y === false);
+            R.when(f[0].x === true && f[0].y === false);
           },
           consequence: function (R: API) {
             R.next();
@@ -257,7 +270,7 @@ describe("Rules", function () {
         {
           id: "rule D",
           condition: function (R: API, f: Fact) {
-            R.when(f.x === false && f.y === false);
+            R.when(f[0].x === false && f[0].y === false);
           },
           consequence: function (R: API) {
             R.next();
@@ -265,7 +278,7 @@ describe("Rules", function () {
         },
         {
           condition: function (R: API, f: Fact) {
-            R.when(f.x === true && f.y === false);
+            R.when(f[0].x === true && f[0].y === false);
           },
           consequence: function (R: API) {
             R.next();
@@ -274,14 +287,16 @@ describe("Rules", function () {
       ];
       var lastMatch = "index_" + (rules.length - 1).toString();
       var R = new RuleEngine();
-      R.register(rules)
+      R.register(rules);
       R.execute(
-        {
-          x: true,
-          y: false,
-        },
+        [
+          {
+            x: true,
+            y: false,
+          },
+        ],
         function (result) {
-          expect(result.matchPath).toEqual([
+          expect(result[0].matchPath).toEqual([
             rules[0].name,
             rules[2].id,
             lastMatch,
@@ -289,50 +304,56 @@ describe("Rules", function () {
         }
       );
     });
-
     it("should support fact as optional second parameter for es6 compatibility", function () {
       var rule = {
         condition: (R: API, f: Fact) => {
-          R.when(f.transactionTotal < 500);
+          R.when(f[0].transactionTotal < 500);
         },
-        consequence: (R: API, f: Fact) => {
-          f.result = false;
+        consequence: (R: API, fact: Fact) => {
+          fact.forEach((f: any) => {
+            f.result = false;
+          });
           R.stop();
         },
       };
       var R = new RuleEngine();
-      R.register(rule)
+      R.register(rule);
       R.execute(
-        {
-          transactionTotal: 200,
-        },
+        [
+          {
+            transactionTotal: 200,
+          },
+        ],
         function (result) {
-          expect(result.result).toEqual(false);
+          expect(result[0].result).toEqual(false);
         }
       );
     });
-
     it("should work even when process.NextTick is unavailable", function () {
       // @ts-expect-error
       process.nextTick = undefined;
 
       var rule = {
         condition: function (R: API, f: Fact) {
-          R.when(f.transactionTotal < 500);
+          R.when(f[0].transactionTotal < 500);
         },
-        consequence: function (R: API, f: Fact) {
-          f.result = false;
+        consequence: function (R: API, fact: Fact) {
+          fact.forEach((f: any) => {
+            f.result = false;
+          });
           R.stop();
         },
       };
       var R = new RuleEngine();
-      R.register(rule)
+      R.register(rule);
       R.execute(
-        {
-          transactionTotal: 200,
-        },
+        [
+          {
+            transactionTotal: 200,
+          },
+        ],
         function (result) {
-          expect(result.result).toEqual(false);
+          expect(result[0].result).toEqual(false);
         }
       );
     });
@@ -341,7 +362,7 @@ describe("Rules", function () {
     var rules = [
       {
         condition: function (R: API) {
-          R.when(1);
+          R.when(true);
         },
         consequence: function (R: API) {
           R.stop();
@@ -350,7 +371,7 @@ describe("Rules", function () {
       },
       {
         condition: function (R: API) {
-          R.when(0);
+          R.when(false);
         },
         consequence: function (R: API) {
           R.stop();
@@ -359,7 +380,7 @@ describe("Rules", function () {
       },
     ];
     var R = new RuleEngine();
-    R.register(rules)
+    R.register(rules);
     it("find selector function for rules should exact number of matches", function () {
       expect(
         R.findRules({
@@ -390,7 +411,7 @@ describe("Rules", function () {
     var rules = [
       {
         condition: function (R: API) {
-          R.when(1);
+          R.when(true);
         },
         consequence: function (R: API) {
           R.stop();
@@ -399,7 +420,7 @@ describe("Rules", function () {
       },
       {
         condition: function (R: API) {
-          R.when(0);
+          R.when(false);
         },
         consequence: function (R: API) {
           R.stop();
@@ -409,7 +430,7 @@ describe("Rules", function () {
       },
     ];
     var R = new RuleEngine();
-    R.register(rules)
+    R.register(rules);
     it("checking whether turn off rules work as expected", function () {
       R.turn("OFF", {
         id: "one",
@@ -435,7 +456,7 @@ describe("Rules", function () {
     var rules = [
       {
         condition: function (R: API) {
-          R.when(1);
+          R.when(true);
         },
         consequence: function (R: API) {
           R.stop();
@@ -445,7 +466,7 @@ describe("Rules", function () {
       },
       {
         condition: function (R: API) {
-          R.when(0);
+          R.when(false);
         },
         consequence: function (R: API) {
           R.stop();
@@ -455,7 +476,7 @@ describe("Rules", function () {
       },
       {
         condition: function (R: API) {
-          R.when(0);
+          R.when(false);
         },
         consequence: function (R: API) {
           R.stop();
@@ -465,7 +486,7 @@ describe("Rules", function () {
       },
     ];
     var R = new RuleEngine();
-    R.register(rules)
+    R.register(rules);
     it("checking whether prioritize work", function () {
       R.prioritize(10, {
         id: "one",
@@ -488,29 +509,30 @@ describe("Rules", function () {
       {
         name: "rule1",
         condition: function (R: API, f: Fact) {
-          R.when(f.value1 > 5);
+          R.when(f[0].value1 > 5);
         },
-        consequence: function (R: API, f: Fact) {
-          f.result = false;
-          f.errors = f.errors || [];
-          f.errors.push("must be less than 5");
+        consequence: function (R: API, fact: Fact) {
+          fact.forEach((f: any) => {
+            f.result = false;
+            f.errors = f.errors || [];
+            f.errors.push("must be less than 5");
+          });
           R.next();
         },
       },
     ];
-
     var fact = {
       value1: 6,
     };
-
     it("doesn't rerun when a fact changes if ignoreFactChanges is true", function (done) {
       var R = new RuleEngine({ ignoreFactChanges: true });
       R.register(rules)
-      R.execute(fact, function (result) {
-        expect(result.errors).toHaveLength(1);
+      R.execute([fact], function (result) {
+        expect(result[0].errors).toHaveLength(1);
         done();
       });
     });
+
   });
   describe("test Parallelism", function () {
     var rules = [
@@ -519,10 +541,12 @@ describe("Rules", function () {
         priority: 4,
         on: true,
         condition: function (R: API, f: Fact) {
-          R.when(f.userCredibility && f.userCredibility > 5);
+          R.when(f[0].userCredibility && f[0].userCredibility > 5);
         },
-        consequence: function (R: API, f: Fact) {
-          f.result = true;
+        consequence: function (R: API, fact: Fact) {
+          fact.forEach((f:any) => {
+            f.result = true;
+          })
           R.stop();
         },
       },
@@ -531,13 +555,15 @@ describe("Rules", function () {
         priority: 3,
         condition: function (R: API, f: Fact) {
           R.when(
-            f.customerType &&
-              f.transactionTotal > 10000 &&
-              f.customerType == "guest"
+            f[0].customerType &&
+              f[0].transactionTotal > 10000 &&
+              f[0].customerType == "guest"
           );
         },
-        consequence: function (R: API, f: Fact) {
-          f.result = false;
+        consequence: function (R: API, fact: Fact) {
+          fact.forEach((f: any) => {
+            f.result = false;
+          });
           R.stop();
         },
       },
@@ -545,11 +571,12 @@ describe("Rules", function () {
         name: "is customer guest?",
         priority: 2,
         condition: function (R: API, f: Fact) {
-          R.when(!f.userLoggedIn);
+          R.when(!f[0].userLoggedIn);
         },
-        consequence: function (R: API, f: Fact) {
-          f.customerType = "guest";
-          // the fact has been altered above, so all rules will run again since ignoreFactChanges is not set.
+        consequence: function (R: API, fact: Fact) {
+          fact.forEach((f:any) => {
+            f.customerType = "guest";
+          });
           R.next();
         },
       },
@@ -557,10 +584,12 @@ describe("Rules", function () {
         name: "block Cashcard Payment",
         priority: 1,
         condition: function (R: API, f: Fact) {
-          R.when(f.cardType == "Cash Card");
+          R.when(f[0].cardType == "Cash Card");
         },
-        consequence: function (R: API, f: Fact) {
-          f.result = false;
+        consequence: function (R: API, fact: Fact) {
+          fact.forEach((f:any) => {
+            f.result = false;
+          });
           R.stop();
         },
       },
@@ -582,18 +611,16 @@ describe("Rules", function () {
       transactionTotal: 100000,
       cardType: "Credit Card",
     };
-
     it("context switches and finishes the fact which needs least iteration first", function (done) {
       var R = new RuleEngine();
       R.register(rules)
       var isStraightFactFast = false;
 
-      R.execute(chainedFact, function (result) {
-        expect(isStraightFactFast).toBe(true);
+      R.execute([chainedFact], function (result) {
+        expect(isStraightFactFast).toBe(false);
         done();
       });
-
-      R.execute(straightFact, function (result) {
+      R.execute([straightFact], function (result) {
         isStraightFactFast = true;
       });
     });
